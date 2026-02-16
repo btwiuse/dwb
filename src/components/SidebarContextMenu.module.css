@@ -1,0 +1,51 @@
+.contextMenu {
+	position: fixed;
+	z-index: 10000;
+	min-width: 144px;
+	padding: 4px;
+	border: 1px solid #2f2f2f;
+	border-radius: 10px;
+	background-color: #1e1e1e;
+	box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+}
+
+.contextMenuItem {
+	display: block;
+	width: 100%;
+	padding: 6px 8px;
+	border: none;
+	border-radius: 8px;
+	background: transparent;
+	color: #f2f2f5;
+	font-size: 12px;
+	font-weight: 600;
+	text-align: left;
+	cursor: pointer;
+}
+
+.contextMenuItem:hover,
+.contextMenuItem:focus-visible {
+	outline: none;
+	background-color: #6651cc;
+}
+
+.contextMenuItemInner {
+	display: grid;
+	grid-template-columns: 16px minmax(0, 1fr);
+	align-items: center;
+	column-gap: 8px;
+	width: 100%;
+}
+
+.contextMenuItemSection {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 16px;
+	margin: 0;
+}
+
+.contextMenuItemLabel {
+	justify-self: start;
+	text-align: left;
+}

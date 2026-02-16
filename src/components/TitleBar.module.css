@@ -1,0 +1,21 @@
+.titleBar {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	height: var(--title-bar-height);
+	min-height: var(--title-bar-height);
+	padding-inline: 14px;
+	background-color: #2c2c2c;
+	user-select: none;
+	-webkit-user-select: none;
+	cursor: default;
+}
+
+.title {
+	font-family: "DynaPuff", system-ui, sans-serif;
+	font-size: var(--mantine-font-size-sm);
+	font-weight: 600;
+	letter-spacing: 0.02em;
+	color: #f2f2f2;
+}
