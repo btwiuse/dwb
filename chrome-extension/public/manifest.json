@@ -3,10 +3,9 @@
 	"name": "DeepWiki Bookmarker",
 	"description": "Track DeepWiki browsing URLs and organize session history by repository for easy revisiting.",
 	"version": "0.1.0",
-	"permissions": ["tabs", "storage"],
+	"permissions": ["tabs", "storage", "sidePanel"],
 	"host_permissions": ["https://deepwiki.com/*"],
 	"action": {
-		"default_popup": "popup.html",
 		"default_icon": {
 			"16": "icons/icon-16.png",
 			"48": "icons/icon-48.png",
@@ -21,5 +20,8 @@
 	"background": {
 		"service_worker": "background.js",
 		"type": "module"
+	},
+	"side_panel": {
+		"default_path": "sidepanel.html"
 	}
 }
