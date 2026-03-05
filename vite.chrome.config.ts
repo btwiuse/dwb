@@ -24,7 +24,7 @@ export default defineConfig({
 		emptyOutDir: true,
 		rollupOptions: {
 			input: {
-				popup: resolve(__dirname, "chrome-extension/popup.html"),
+				sidepanel: resolve(__dirname, "chrome-extension/sidepanel.html"),
 				background: resolve(__dirname, "chrome-extension/background.ts"),
 			},
 			output: {
