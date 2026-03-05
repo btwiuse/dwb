@@ -215,7 +215,7 @@ chrome.tabs.onRemoved.addListener((tabId) => {
 
 // Also check the active tab on extension install/startup
 chrome.runtime.onInstalled.addListener(async () => {
-	const tabs = await chrome.tabs.query({ url: "https://deepwiki.com/*" });
+	const tabs = await chrome.tabs.query({ url: `${HOME_ORIGIN}/*` });
 	for (const tab of tabs) {
 		if (tab.id !== undefined && tab.url) {
 			await handleUrlChange(tab.id, tab.url);
