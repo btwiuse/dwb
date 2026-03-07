@@ -12,6 +12,8 @@ dist
 dist-chrome
 dist-ssr
 *.local
+dist-chrome.crx
+dist-chrome.pem
 
 # Editor directories and files
 .vscode/*
