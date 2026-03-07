@@ -26,9 +26,42 @@ type PersistedData = {
 };
 
 const STORAGE_KEY = "dwb.repositories.v1";
+const SESSION_TAB_CONTEXT_KEY = "dwb.tabContext.v1";
+const SESSION_OPEN_PANELS_KEY = "dwb.openPanels.v1";
 
 // Track which repository the user was last viewing per tab
-const tabRepositoryContext = new Map<number, string>();
+// Using chrome.storage.session for persistence across service worker restarts
+async function getTabRepositoryContext(
+	tabId: number,
+): Promise<string | undefined> {
+	const result = await chrome.storage.session.get(SESSION_TAB_CONTEXT_KEY);
+	const context = result[SESSION_TAB_CONTEXT_KEY] as
+		| Record<string, string>
+		| undefined;
+	return context?.[tabId.toString()];
+}
+
+async function setTabRepositoryContext(
+	tabId: number,
+	slug: string,
+): Promise<void> {
+	const result = await chrome.storage.session.get(SESSION_TAB_CONTEXT_KEY);
+	const context =
+		(result[SESSION_TAB_CONTEXT_KEY] as Record<string, string> | undefined) ??
+		{};
+	context[tabId.toString()] = slug;
+	await chrome.storage.session.set({ [SESSION_TAB_CONTEXT_KEY]: context });
+}
+
+async function deleteTabRepositoryContext(tabId: number): Promise<void> {
+	const result = await chrome.storage.session.get(SESSION_TAB_CONTEXT_KEY);
+	const context = result[SESSION_TAB_CONTEXT_KEY] as
+		| Record<string, string>
+		| undefined;
+	if (!context) return;
+	delete context[tabId.toString()];
+	await chrome.storage.session.set({ [SESSION_TAB_CONTEXT_KEY]: context });
+}
 
 function parseDeepWikiUrl(raw: string): UrlKind {
 	try {
@@ -161,7 +194,7 @@ async function handleUrlChange(tabId: number, rawUrl: string): Promise<void> {
 	const kind = parseDeepWikiUrl(normalized);
 
 	if (kind.type === "home") {
-		tabRepositoryContext.delete(tabId);
+		await deleteTabRepositoryContext(tabId);
 		return;
 	}
 
@@ -173,7 +206,7 @@ async function handleUrlChange(tabId: number, rawUrl: string): Promise<void> {
 	let repos = data.repositories;
 
 	if (kind.type === "repository") {
-		tabRepositoryContext.set(tabId, kind.slug);
+		await setTabRepositoryContext(tabId, kind.slug);
 		repos = upsertRepository(repos, kind.slug);
 		await saveData({ version: 1, repositories: repos });
 		return;
@@ -182,12 +215,12 @@ async function handleUrlChange(tabId: number, rawUrl: string): Promise<void> {
 	if (kind.type === "session") {
 		const targetRepository =
 			findSessionOwner(repos, normalized) ??
-			tabRepositoryContext.get(tabId) ??
+			(await getTabRepositoryContext(tabId)) ??
 			null;
 		if (!targetRepository) {
 			return;
 		}
-		tabRepositoryContext.set(tabId, targetRepository);
+		await setTabRepositoryContext(tabId, targetRepository);
 		repos = upsertRepository(repos, targetRepository);
 		repos = appendSession(repos, targetRepository, normalized);
 		await saveData({ version: 1, repositories: repos });
@@ -205,24 +238,52 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, _tab) => {
 
 // Clean up context when a tab is closed
 chrome.tabs.onRemoved.addListener((tabId) => {
-	tabRepositoryContext.delete(tabId);
+	deleteTabRepositoryContext(tabId).catch((error) => {
+		console.error("[dwb] Error cleaning up tab context:", error);
+	});
 });
 
 // Track which windows currently have the side panel open.
-const openSidePanelWindows = new Set<number>();
+// Using chrome.storage.session for persistence across service worker restarts
+async function getOpenSidePanelWindows(): Promise<Set<number>> {
+	const result = await chrome.storage.session.get(SESSION_OPEN_PANELS_KEY);
+	const windowIds = result[SESSION_OPEN_PANELS_KEY] as number[] | undefined;
+	return new Set(windowIds ?? []);
+}
+
+async function addOpenSidePanelWindow(windowId: number): Promise<void> {
+	const windows = await getOpenSidePanelWindows();
+	windows.add(windowId);
+	await chrome.storage.session.set({
+		[SESSION_OPEN_PANELS_KEY]: Array.from(windows),
+	});
+}
+
+async function deleteOpenSidePanelWindow(windowId: number): Promise<void> {
+	const windows = await getOpenSidePanelWindows();
+	windows.delete(windowId);
+	await chrome.storage.session.set({
+		[SESSION_OPEN_PANELS_KEY]: Array.from(windows),
+	});
+}
 
 chrome.sidePanel.onOpened.addListener((info) => {
-	openSidePanelWindows.add(info.windowId);
+	addOpenSidePanelWindow(info.windowId).catch((error) => {
+		console.error("[dwb] Error tracking opened side panel:", error);
+	});
 });
 
 chrome.sidePanel.onClosed.addListener((info) => {
-	openSidePanelWindows.delete(info.windowId);
+	deleteOpenSidePanelWindow(info.windowId).catch((error) => {
+		console.error("[dwb] Error tracking closed side panel:", error);
+	});
 });
 
 // Toggle side panel when extension icon is clicked
-chrome.action.onClicked.addListener((tab) => {
+chrome.action.onClicked.addListener(async (tab) => {
 	if (tab.windowId === undefined) return;
-	if (openSidePanelWindows.has(tab.windowId)) {
+	const openWindows = await getOpenSidePanelWindows();
+	if (openWindows.has(tab.windowId)) {
 		chrome.sidePanel.close({ windowId: tab.windowId });
 	} else {
 		chrome.sidePanel.open({ windowId: tab.windowId });
