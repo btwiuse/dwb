@@ -123,21 +123,13 @@ export function PopupApp() {
 		}
 	}, [selectedKind, selectedSessionOwner]);
 
-	// Navigate: open URL in the active deepwiki tab or create one
+	// Navigate: open URL in a new tab
 	const navigate = useCallback(
 		async (url: string, repositoryContext: string | null) => {
 			repositoryContextRef.current = repositoryContext;
 			setSelectedUrl(normalizeUrl(url));
 			try {
-				const tabs = await chrome.tabs.query({
-					url: "https://deepwiki.com/*",
-					currentWindow: true,
-				});
-				if (tabs.length > 0 && tabs[0].id !== undefined) {
-					await chrome.tabs.update(tabs[0].id, { url, active: true });
-				} else {
-					await chrome.tabs.create({ url });
-				}
+				await chrome.tabs.create({ url });
 			} catch (error: unknown) {
 				console.error("[dwb] Navigation error:", error);
 			}
