@@ -213,9 +213,23 @@ chrome.tabs.onRemoved.addListener((tabId) => {
 	tabRepositoryContext.delete(tabId);
 });
 
-// Open side panel when extension icon is clicked
+// Track which windows currently have the side panel open.
+const openSidePanelWindows = new Set<number>();
+
+chrome.sidePanel.onOpened.addListener((info) => {
+	openSidePanelWindows.add(info.windowId);
+});
+
+chrome.sidePanel.onClosed.addListener((info) => {
+	openSidePanelWindows.delete(info.windowId);
+});
+
+// Toggle side panel when extension icon is clicked
 chrome.action.onClicked.addListener((tab) => {
-	if (tab.windowId !== undefined) {
+	if (tab.windowId === undefined) return;
+	if (openSidePanelWindows.has(tab.windowId)) {
+		chrome.sidePanel.close({ windowId: tab.windowId });
+	} else {
 		chrome.sidePanel.open({ windowId: tab.windowId });
 	}
 });
