@@ -214,30 +214,21 @@ chrome.tabs.onRemoved.addListener((tabId) => {
 });
 
 // Track which windows currently have the side panel open.
-// The side panel connects a port named "sidepanel" on load and posts its windowId.
 const openSidePanelWindows = new Set<number>();
 
-chrome.runtime.onConnect.addListener((port) => {
-	if (port.name !== "sidepanel") return;
-	port.onMessage.addListener((msg: { type: string; windowId: number }) => {
-		if (msg.type === "init" && typeof msg.windowId === "number") {
-			openSidePanelWindows.add(msg.windowId);
-			port.onDisconnect.addListener(() => {
-				openSidePanelWindows.delete(msg.windowId);
-			});
-		}
-	});
+chrome.sidePanel.onOpened.addListener((info) => {
+	openSidePanelWindows.add(info.windowId);
+});
+
+chrome.sidePanel.onClosed.addListener((info) => {
+	openSidePanelWindows.delete(info.windowId);
 });
 
 // Toggle side panel when extension icon is clicked
 chrome.action.onClicked.addListener((tab) => {
 	if (tab.windowId === undefined) return;
 	if (openSidePanelWindows.has(tab.windowId)) {
-		// Panel is open — disable it (closes the panel), then re-enable so a
-		// subsequent click can open it again.
-		chrome.sidePanel
-			.setOptions({ enabled: false })
-			.then(() => chrome.sidePanel.setOptions({ enabled: true, path: "sidepanel.html" }));
+		chrome.sidePanel.close({ windowId: tab.windowId });
 	} else {
 		chrome.sidePanel.open({ windowId: tab.windowId });
 	}
