@@ -22,7 +22,15 @@ describe("side panel window id updates", () => {
 		expect(addOpenSidePanelWindowId([9, 2], 5)).toEqual([2, 5, 9]);
 	});
 
+	it("does not duplicate an existing window id", () => {
+		expect(addOpenSidePanelWindowId([2, 5], 5)).toEqual([2, 5]);
+	});
+
 	it("removes a window id without affecting others", () => {
 		expect(removeOpenSidePanelWindowId([2, 5, 9], 5)).toEqual([2, 9]);
+	});
+
+	it("leaves the list unchanged when removing a missing window id", () => {
+		expect(removeOpenSidePanelWindowId([2, 9], 5)).toEqual([2, 9]);
 	});
 });

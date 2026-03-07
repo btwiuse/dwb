@@ -9,7 +9,7 @@ export function normalizeOpenSidePanelWindowIds(value: unknown): number[] {
 		return [];
 	}
 
-	return [...new Set(value.filter(isValidWindowId))].sort((left, right) => left - right);
+	return [...new Set(value.filter(isValidWindowId))].sort((a, b) => a - b);
 }
 
 export function addOpenSidePanelWindowId(

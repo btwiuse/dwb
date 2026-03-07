@@ -221,11 +221,20 @@ async function loadOpenSidePanelWindowIds(): Promise<number[]> {
 
 let openSidePanelWindowIdsUpdate: Promise<void> = Promise.resolve();
 
+function logSidePanelStateUpdateError(context: string, error: unknown): void {
+	console.error(`[dwb] ${context}:`, error);
+}
+
 async function updateOpenSidePanelWindowIds(
 	update: (windowIds: number[]) => number[],
 ): Promise<void> {
 	const nextUpdate = openSidePanelWindowIdsUpdate
-		.catch(() => undefined)
+		.catch((error) => {
+			logSidePanelStateUpdateError(
+				"Error waiting for prior side panel state update",
+				error,
+			);
+		})
 		.then(async () => {
 			const windowIds = await loadOpenSidePanelWindowIds();
 			await chrome.storage.session.set({
@@ -238,15 +247,51 @@ async function updateOpenSidePanelWindowIds(
 }
 
 async function loadTrackedOpenSidePanelWindowIds(): Promise<number[]> {
-	await openSidePanelWindowIdsUpdate.catch(() => undefined);
+	await openSidePanelWindowIdsUpdate.catch((error) => {
+		logSidePanelStateUpdateError(
+			"Error waiting for queued side panel state update",
+			error,
+		);
+	});
 	return loadOpenSidePanelWindowIds();
+}
+
+let sidePanelToggleUpdate: Promise<void> = Promise.resolve();
+
+async function toggleSidePanel(windowId: number): Promise<void> {
+	const nextToggle = sidePanelToggleUpdate
+		.catch((error) => {
+			logSidePanelStateUpdateError(
+				"Error waiting for prior side panel toggle",
+				error,
+			);
+		})
+		.then(async () => {
+			const openSidePanelWindows = await loadTrackedOpenSidePanelWindowIds();
+
+			if (openSidePanelWindows.includes(windowId)) {
+				await chrome.sidePanel.close({ windowId });
+				await updateOpenSidePanelWindowIds((windowIds) =>
+					removeOpenSidePanelWindowId(windowIds, windowId),
+				);
+				return;
+			}
+
+			await chrome.sidePanel.open({ windowId });
+			await updateOpenSidePanelWindowIds((windowIds) =>
+				addOpenSidePanelWindowId(windowIds, windowId),
+			);
+		});
+
+	sidePanelToggleUpdate = nextToggle;
+	return nextToggle;
 }
 
 chrome.sidePanel.onOpened.addListener((info) => {
 	updateOpenSidePanelWindowIds((windowIds) =>
 		addOpenSidePanelWindowId(windowIds, info.windowId),
 	).catch((error) => {
-		console.error("[dwb] Error tracking opened side panel:", error);
+		logSidePanelStateUpdateError("Error tracking opened side panel", error);
 	});
 });
 
@@ -254,19 +299,16 @@ chrome.sidePanel.onClosed.addListener((info) => {
 	updateOpenSidePanelWindowIds((windowIds) =>
 		removeOpenSidePanelWindowId(windowIds, info.windowId),
 	).catch((error) => {
-		console.error("[dwb] Error tracking closed side panel:", error);
+		logSidePanelStateUpdateError("Error tracking closed side panel", error);
 	});
 });
 
 // Toggle side panel when extension icon is clicked
-chrome.action.onClicked.addListener(async (tab) => {
+chrome.action.onClicked.addListener((tab) => {
 	if (tab.windowId === undefined) return;
-	const openSidePanelWindows = await loadTrackedOpenSidePanelWindowIds();
-	if (openSidePanelWindows.includes(tab.windowId)) {
-		await chrome.sidePanel.close({ windowId: tab.windowId });
-	} else {
-		await chrome.sidePanel.open({ windowId: tab.windowId });
-	}
+	toggleSidePanel(tab.windowId).catch((error) => {
+		logSidePanelStateUpdateError("Error toggling side panel", error);
+	});
 });
 
 // Also check the active tab on extension install/startup
