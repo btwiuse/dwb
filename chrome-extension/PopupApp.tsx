@@ -124,19 +124,33 @@ export function PopupApp() {
 	}, [selectedKind, selectedSessionOwner]);
 
 	// Navigate: open URL in the active deepwiki tab or create one
+	// If Command (metaKey) or Ctrl (ctrlKey) is held, always open in new tab
 	const navigate = useCallback(
-		async (url: string, repositoryContext: string | null) => {
+		async (
+			url: string,
+			repositoryContext: string | null,
+			event?: React.MouseEvent,
+		) => {
 			repositoryContextRef.current = repositoryContext;
 			setSelectedUrl(normalizeUrl(url));
 			try {
-				const tabs = await chrome.tabs.query({
-					url: "https://deepwiki.com/*",
-					currentWindow: true,
-				});
-				if (tabs.length > 0 && tabs[0].id !== undefined) {
-					await chrome.tabs.update(tabs[0].id, { url, active: true });
-				} else {
+				// Check if Command (Mac) or Ctrl (Windows/Linux) key is pressed
+				const forceNewTab = event?.metaKey || event?.ctrlKey;
+
+				if (forceNewTab) {
+					// Always create a new tab when modifier key is pressed
 					await chrome.tabs.create({ url });
+				} else {
+					// Original behavior: reuse existing deepwiki tab or create new one
+					const tabs = await chrome.tabs.query({
+						url: "https://deepwiki.com/*",
+						currentWindow: true,
+					});
+					if (tabs.length > 0 && tabs[0].id !== undefined) {
+						await chrome.tabs.update(tabs[0].id, { url, active: true });
+					} else {
+						await chrome.tabs.create({ url });
+					}
 				}
 			} catch (error: unknown) {
 				console.error("[dwb] Navigation error:", error);
@@ -259,7 +273,7 @@ export function PopupApp() {
 								className={styles.navLinkRoot}
 								label="Home"
 								leftSection={<FiHome size={16} />}
-								onClick={() => void navigate(HOME_URL, null)}
+								onClick={(event) => void navigate(HOME_URL, null, event)}
 								variant={selectedKind.type === "home" ? "filled" : "subtle"}
 							/>
 
@@ -303,10 +317,11 @@ export function PopupApp() {
 															{repo.slug}
 														</Text>
 													}
-													onClick={() =>
+													onClick={(event) =>
 														void navigate(
 															`https://deepwiki.com/${repo.slug}`,
 															repo.slug,
+															event,
 														)
 													}
 													onContextMenu={(event) =>
@@ -415,11 +430,11 @@ export function PopupApp() {
 																					</Text>
 																				)
 																			}
-																			onClick={() => {
+																			onClick={(event) => {
 																				if (isSessionEditing) {
 																					return;
 																				}
-																				void navigate(session.url, repo.slug);
+																				void navigate(session.url, repo.slug, event);
 																			}}
 																			onContextMenu={(event) =>
 																				openContextMenu(event, {
