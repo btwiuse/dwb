@@ -156,10 +156,7 @@ function appendSession(
 	});
 }
 
-async function handleUrlChange(
-	tabId: number,
-	rawUrl: string,
-): Promise<void> {
+async function handleUrlChange(tabId: number, rawUrl: string): Promise<void> {
 	const normalized = normalizeUrl(rawUrl);
 	const kind = parseDeepWikiUrl(normalized);
 
@@ -198,15 +195,13 @@ async function handleUrlChange(
 }
 
 // Listen for tab URL updates
-chrome.tabs.onUpdated.addListener(
-	(tabId, changeInfo, _tab) => {
-		if (changeInfo.url) {
-			handleUrlChange(tabId, changeInfo.url).catch((error) => {
-				console.error("[dwb] Error handling URL change:", error);
-			});
-		}
-	},
-);
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, _tab) => {
+	if (changeInfo.url) {
+		handleUrlChange(tabId, changeInfo.url).catch((error) => {
+			console.error("[dwb] Error handling URL change:", error);
+		});
+	}
+});
 
 // Clean up context when a tab is closed
 chrome.tabs.onRemoved.addListener((tabId) => {

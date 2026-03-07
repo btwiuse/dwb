@@ -290,10 +290,7 @@ export function PopupApp() {
 										const isRepoOpened = openedRepositories.has(repo.slug);
 										const hasSessions = repo.sessions.length > 0;
 										return (
-											<Stack
-												key={repo.slug}
-												className={styles.repositoryGroup}
-											>
+											<Stack key={repo.slug} className={styles.repositoryGroup}>
 												<NavLink
 													active={isRepoSelected}
 													className={
@@ -372,9 +369,7 @@ export function PopupApp() {
 																					<input
 																						ref={sessionAliasInputRef}
 																						aria-label="Session alias"
-																						className={
-																							styles.sessionAliasInput
-																						}
+																						className={styles.sessionAliasInput}
 																						onBlur={() =>
 																							commitSessionAliasEdit(
 																								session.url,
@@ -415,9 +410,7 @@ export function PopupApp() {
 																						value={sessionAliasDraft}
 																					/>
 																				) : (
-																					<Text
-																						className={styles.sessionLabel}
-																					>
+																					<Text className={styles.sessionLabel}>
 																						{displayLabel}
 																					</Text>
 																				)

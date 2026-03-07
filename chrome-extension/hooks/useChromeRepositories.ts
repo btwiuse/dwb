@@ -55,9 +55,7 @@ function parseSession(
 	};
 }
 
-function parseRepository(
-	value: unknown,
-): PersistedRepository | null {
+function parseRepository(value: unknown): PersistedRepository | null {
 	if (!isRecord(value)) {
 		return null;
 	}
@@ -70,9 +68,7 @@ function parseRepository(
 	return { slug: value.slug, sessions };
 }
 
-function parseRepositoriesArray(
-	value: unknown,
-): PersistedRepository[] {
+function parseRepositoriesArray(value: unknown): PersistedRepository[] {
 	if (!Array.isArray(value)) {
 		return [];
 	}
@@ -101,9 +97,7 @@ function repositoriesToStore(
 	return store;
 }
 
-function storeToRepositories(
-	store: RepositoryStore,
-): PersistedRepository[] {
+function storeToRepositories(store: RepositoryStore): PersistedRepository[] {
 	return Array.from(store.entries())
 		.map(([slug, sessionsByUrl]) => ({
 			slug,
