@@ -246,10 +246,6 @@ export function PopupApp() {
 
 	return (
 		<Flex className={styles.popupRoot}>
-			<Flex className={styles.header}>
-				<Text className={styles.title}>d('w')b</Text>
-			</Flex>
-
 			<SidebarContextMenu
 				onDeleteRepository={handleDeleteRepository}
 				onStartSessionAliasEdit={handleStartSessionAliasEdit}
