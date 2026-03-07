@@ -2,7 +2,7 @@
 	"manifest_version": 3,
 	"name": "DeepWiki Bookmarker",
 	"description": "Track DeepWiki browsing URLs and organize session history by repository for easy revisiting.",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"permissions": ["tabs", "storage", "sidePanel"],
 	"host_permissions": ["https://deepwiki.com/*"],
 	"action": {
