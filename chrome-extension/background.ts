@@ -1,4 +1,10 @@
 import sharedConstants from "@/shared/constants.json";
+import {
+	SIDE_PANEL_OPEN_WINDOWS_KEY,
+	addOpenSidePanelWindowId,
+	normalizeOpenSidePanelWindowIds,
+	removeOpenSidePanelWindowId,
+} from "./sidePanelState";
 
 const HOME_URL = sharedConstants.HOME_URL;
 const HOME_ORIGIN = new URL(HOME_URL).origin;
@@ -208,24 +214,44 @@ chrome.tabs.onRemoved.addListener((tabId) => {
 	tabRepositoryContext.delete(tabId);
 });
 
-// Track which windows currently have the side panel open.
-const openSidePanelWindows = new Set<number>();
+async function loadOpenSidePanelWindowIds(): Promise<number[]> {
+	const result = await chrome.storage.session.get(SIDE_PANEL_OPEN_WINDOWS_KEY);
+	return normalizeOpenSidePanelWindowIds(result[SIDE_PANEL_OPEN_WINDOWS_KEY]);
+}
+
+async function updateOpenSidePanelWindowIds(
+	update: (windowIds: number[]) => number[],
+): Promise<void> {
+	const windowIds = await loadOpenSidePanelWindowIds();
+	await chrome.storage.session.set({
+		[SIDE_PANEL_OPEN_WINDOWS_KEY]: update(windowIds),
+	});
+}
 
 chrome.sidePanel.onOpened.addListener((info) => {
-	openSidePanelWindows.add(info.windowId);
+	updateOpenSidePanelWindowIds((windowIds) =>
+		addOpenSidePanelWindowId(windowIds, info.windowId),
+	).catch((error) => {
+		console.error("[dwb] Error tracking opened side panel:", error);
+	});
 });
 
 chrome.sidePanel.onClosed.addListener((info) => {
-	openSidePanelWindows.delete(info.windowId);
+	updateOpenSidePanelWindowIds((windowIds) =>
+		removeOpenSidePanelWindowId(windowIds, info.windowId),
+	).catch((error) => {
+		console.error("[dwb] Error tracking closed side panel:", error);
+	});
 });
 
 // Toggle side panel when extension icon is clicked
-chrome.action.onClicked.addListener((tab) => {
+chrome.action.onClicked.addListener(async (tab) => {
 	if (tab.windowId === undefined) return;
-	if (openSidePanelWindows.has(tab.windowId)) {
-		chrome.sidePanel.close({ windowId: tab.windowId });
+	const openSidePanelWindows = await loadOpenSidePanelWindowIds();
+	if (openSidePanelWindows.includes(tab.windowId)) {
+		await chrome.sidePanel.close({ windowId: tab.windowId });
 	} else {
-		chrome.sidePanel.open({ windowId: tab.windowId });
+		await chrome.sidePanel.open({ windowId: tab.windowId });
 	}
 });
 
