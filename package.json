@@ -1,12 +1,13 @@
 {
   "name": "dwb",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
     "build:chrome": "vite build --config vite.chrome.config.ts",
+    "package:chrome": "npm run build:chrome && crx3 -z dist-chrome.zip -p dist-chrome.pem dist-chrome",
     "test": "vitest run",
     "preview": "vite preview",
     "tauri": "tauri",
@@ -31,6 +32,7 @@
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^4.6.0",
+    "crx3": "^2.0.0",
     "typescript": "~5.8.3",
     "vite": "^7.0.4",
     "vitest": "^4.0.18"
