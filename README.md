@@ -1,17 +1,17 @@
-# DeepWiki Bookmarker
+# DeepWiki Browser
 
 <p align="center">
-  <img src="src-tauri/icons/icon.png" alt="DeepWiki Bookmarker Logo" width="20%" />
+  <img src="src-tauri/icons/icon.png" alt="DeepWiki Browser Logo" width="20%" />
 </p>
 
-DeepWiki Bookmarker (a.k.a. `dwb`) is a desktop application that tracks
-DeepWiki browsing URLs and organizes session history by repository for easy revisiting. 
+DeepWiki Browser (a.k.a. `dwb`) is a desktop application that automatically tracks
+DeepWiki browsing sessions and organizes them by repository for easy navigation.
 
 > [!NOTE]
 > This application is an **unofficial** app for Devin and is not endorsed, provided, or supported by the developers of Devin.
 
 <p align="center">
-  <img src="assets/dwb.png" alt="DeepWiki Bookmarker Demo" width="100%" />
+  <img src="assets/dwb.png" alt="DeepWiki Browser Demo" width="100%" />
 </p>
 
 ## Installation
