@@ -29,6 +29,7 @@ const STORAGE_KEY = "dwb.repositories.v1";
 
 // Track which repository the user was last viewing per tab
 const tabRepositoryContext = new Map<number, string>();
+const openSidePanelWindowIds = new Set<number>();
 
 function parseDeepWikiUrl(raw: string): UrlKind {
 	try {
@@ -213,10 +214,23 @@ chrome.tabs.onRemoved.addListener((tabId) => {
 	tabRepositoryContext.delete(tabId);
 });
 
-// Open side panel when extension icon is clicked
+async function toggleSidePanel(windowId: number): Promise<void> {
+	if (openSidePanelWindowIds.has(windowId)) {
+		await chrome.sidePanel.close({ windowId });
+		openSidePanelWindowIds.delete(windowId);
+		return;
+	}
+
+	await chrome.sidePanel.open({ windowId });
+	openSidePanelWindowIds.add(windowId);
+}
+
+// Toggle side panel when extension icon is clicked
 chrome.action.onClicked.addListener((tab) => {
 	if (tab.windowId !== undefined) {
-		chrome.sidePanel.open({ windowId: tab.windowId });
+		toggleSidePanel(tab.windowId).catch((error) => {
+			console.error("[dwb] Error toggling side panel:", error);
+		});
 	}
 });
 
