@@ -1,13 +1,5 @@
-import sharedConstants from "@/shared/constants.json";
-
-const HOME_URL = sharedConstants.HOME_URL;
-const HOME_ORIGIN = new URL(HOME_URL).origin;
-
-type UrlKind =
-	| { type: "home" }
-	| { type: "repository"; slug: string }
-	| { type: "session" }
-	| { type: "other" };
+import { HOME_ORIGIN } from "@/lib/constants";
+import { normalizeUrl, parseDeepWikiUrl } from "@/lib/deepWikiUrl";
 
 type Session = {
 	url: string;
@@ -29,47 +21,6 @@ const STORAGE_KEY = "dwb.repositories.v1";
 
 // Track which repository the user was last viewing per tab
 const tabRepositoryContext = new Map<number, string>();
-
-function parseDeepWikiUrl(raw: string): UrlKind {
-	try {
-		const url = new URL(raw);
-		if (url.origin !== HOME_ORIGIN) {
-			return { type: "other" };
-		}
-
-		const segments = url.pathname.split("/").filter(Boolean);
-		if (segments.length === 0) {
-			return { type: "home" };
-		}
-
-		if (segments[0] === "search" && segments.length >= 2) {
-			return { type: "session" };
-		}
-
-		if (segments.length >= 2) {
-			return { type: "repository", slug: `${segments[0]}/${segments[1]}` };
-		}
-
-		return { type: "other" };
-	} catch {
-		return { type: "other" };
-	}
-}
-
-function normalizeUrl(raw: string): string {
-	try {
-		const url = new URL(raw);
-		if (url.origin !== HOME_ORIGIN) {
-			return raw;
-		}
-		if (url.pathname === "/") {
-			return HOME_URL;
-		}
-		return `${url.origin}${url.pathname}${url.search}`;
-	} catch {
-		return raw;
-	}
-}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null;
