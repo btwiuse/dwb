@@ -16,7 +16,8 @@ export function addOpenSidePanelWindowId(
 	value: unknown,
 	windowId: number,
 ): number[] {
-	return normalizeOpenSidePanelWindowIds([...normalizeOpenSidePanelWindowIds(value), windowId]);
+	const windowIds = normalizeOpenSidePanelWindowIds(value);
+	return normalizeOpenSidePanelWindowIds([...windowIds, windowId]);
 }
 
 export function removeOpenSidePanelWindowId(

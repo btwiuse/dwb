@@ -219,13 +219,27 @@ async function loadOpenSidePanelWindowIds(): Promise<number[]> {
 	return normalizeOpenSidePanelWindowIds(result[SIDE_PANEL_OPEN_WINDOWS_KEY]);
 }
 
+let openSidePanelWindowIdsUpdate: Promise<void> = Promise.resolve();
+
 async function updateOpenSidePanelWindowIds(
 	update: (windowIds: number[]) => number[],
 ): Promise<void> {
-	const windowIds = await loadOpenSidePanelWindowIds();
-	await chrome.storage.session.set({
-		[SIDE_PANEL_OPEN_WINDOWS_KEY]: update(windowIds),
-	});
+	const nextUpdate = openSidePanelWindowIdsUpdate
+		.catch(() => undefined)
+		.then(async () => {
+			const windowIds = await loadOpenSidePanelWindowIds();
+			await chrome.storage.session.set({
+				[SIDE_PANEL_OPEN_WINDOWS_KEY]: update(windowIds),
+			});
+		});
+
+	openSidePanelWindowIdsUpdate = nextUpdate;
+	return nextUpdate;
+}
+
+async function loadTrackedOpenSidePanelWindowIds(): Promise<number[]> {
+	await openSidePanelWindowIdsUpdate.catch(() => undefined);
+	return loadOpenSidePanelWindowIds();
 }
 
 chrome.sidePanel.onOpened.addListener((info) => {
@@ -247,7 +261,7 @@ chrome.sidePanel.onClosed.addListener((info) => {
 // Toggle side panel when extension icon is clicked
 chrome.action.onClicked.addListener(async (tab) => {
 	if (tab.windowId === undefined) return;
-	const openSidePanelWindows = await loadOpenSidePanelWindowIds();
+	const openSidePanelWindows = await loadTrackedOpenSidePanelWindowIds();
 	if (openSidePanelWindows.includes(tab.windowId)) {
 		await chrome.sidePanel.close({ windowId: tab.windowId });
 	} else {
