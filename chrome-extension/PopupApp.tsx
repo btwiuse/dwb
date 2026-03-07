@@ -10,7 +10,7 @@ import {
 	Text,
 } from "@mantine/core";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { FiChevronRight, FiHome } from "react-icons/fi";
+import { FiChevronRight, FiHome, FiSearch } from "react-icons/fi";
 import { SidebarContextMenu } from "@/components/SidebarContextMenu";
 import { HOME_URL } from "@/lib/constants";
 import {
@@ -34,6 +34,17 @@ import {
 } from "./hooks/useChromeRepositories";
 import styles from "./PopupApp.module.css";
 
+function sessionMatchesQuery(
+	session: { url: string; alias?: string },
+	query: string,
+): boolean {
+	const label = session.alias?.trim() || formatSessionLabel(session.url);
+	return (
+		label.toLowerCase().includes(query) ||
+		session.url.toLowerCase().includes(query)
+	);
+}
+
 export function PopupApp() {
 	const [repositoryStore, setRepositoryStore, isLoaded] =
 		useChromeRepositories();
@@ -50,6 +61,31 @@ export function PopupApp() {
 				})),
 		[repositoryStore],
 	);
+
+	// Search/filter state
+	const [searchQuery, setSearchQuery] = useState("");
+
+	const filteredRepositories = useMemo(() => {
+		if (!searchQuery.trim()) {
+			return repositories;
+		}
+		const query = searchQuery.toLowerCase();
+		return repositories
+			.map((repo) => {
+				const slugMatches = repo.slug.toLowerCase().includes(query);
+				const matchingSessions = repo.sessions.filter((session) =>
+					sessionMatchesQuery(session, query),
+				);
+				if (!slugMatches && matchingSessions.length === 0) {
+					return null;
+				}
+				return {
+					...repo,
+					sessions: slugMatches ? repo.sessions : matchingSessions,
+				};
+			})
+			.filter((repo): repo is NonNullable<typeof repo> => repo !== null);
+	}, [repositories, searchQuery]);
 
 	// Currently selected URL (tracks the active deepwiki tab)
 	const [selectedUrl, setSelectedUrl] = useState(HOME_URL);
@@ -122,6 +158,24 @@ export function PopupApp() {
 			});
 		}
 	}, [selectedKind, selectedSessionOwner]);
+
+	// Auto-expand repositories that have visible sessions while searching
+	useEffect(() => {
+		if (!searchQuery.trim()) {
+			return;
+		}
+		setOpenedRepositories((prev) => {
+			let changed = false;
+			const next = new Set(prev);
+			for (const repo of filteredRepositories) {
+				if (repo.sessions.length > 0 && !next.has(repo.slug)) {
+					next.add(repo.slug);
+					changed = true;
+				}
+			}
+			return changed ? next : prev;
+		});
+	}, [searchQuery, filteredRepositories]);
 
 	// Navigate: open URL in the active deepwiki tab or create one
 	const navigate = useCallback(
@@ -273,17 +327,33 @@ export function PopupApp() {
 								labelPosition="center"
 							/>
 
+							<div className={styles.searchContainer}>
+								<FiSearch className={styles.searchIcon} size={12} />
+								<input
+									aria-label="Filter repositories and sessions"
+									className={styles.searchInput}
+									onChange={(event) =>
+										setSearchQuery(event.currentTarget.value)
+									}
+									placeholder="Filter..."
+									type="text"
+									value={searchQuery}
+								/>
+							</div>
+
 							<ScrollArea
 								className={styles.repositoriesScroll}
 								offsetScrollbars
 							>
 								<Stack className={styles.repositoryList}>
-									{repositories.length === 0 ? (
+									{filteredRepositories.length === 0 ? (
 										<Text className={styles.emptyText}>
-											Browse deepwiki.com to start tracking repositories
+											{searchQuery.trim()
+												? "No results"
+												: "Browse deepwiki.com to start tracking repositories"}
 										</Text>
 									) : null}
-									{repositories.map((repo) => {
+									{filteredRepositories.map((repo) => {
 										const isRepoSelected =
 											selectedKind.type === "repository" &&
 											selectedKind.slug === repo.slug;
